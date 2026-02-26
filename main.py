@@ -4,6 +4,9 @@ from datetime import datetime
 from openai import OpenAI
 from dotenv import load_dotenv
 
+# --- 页面全局配置 (必须放在首行) ---
+st.set_page_config(page_title='Kznk的智能总结引擎', page_icon='🚀', layout='wide')
+
 # --- 导入 PDF 处理库 ---
 try:
     import fitz  # PyMuPDF
@@ -18,9 +21,6 @@ client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
     base_url=os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
 )
-
-# 设置网页配置
-st.set_page_config(page_title="智能文件总结助手", page_icon="📝", layout="centered")
 
 def read_pdf_file(uploaded_file):
     """提取 PDF 文件中的文字 (支持 Streamlit 上传对象)"""
@@ -72,13 +72,14 @@ def summarize_text(text, target_lang, target_len, target_style):
         return None
 
 def main():
-    # 界面标题和副标题
-    st.title("🚀 智能文件总结助手")
-    st.markdown("---")
+    # --- 主界面标题与美化 ---
+    st.markdown("<h1 style='text-align: center; color: #1E90FF;'>✨ Kznk 智能文档分析核心</h1>", unsafe_allow_html=True)
+    st.divider()
+    st.markdown("<p style='text-align: center; font-style: italic; color: #666;'>欢迎，指挥官。请在下方开启您的智慧分析之旅。</p>", unsafe_allow_html=True)
     
     # --- 侧边栏：安全校验 ---
     with st.sidebar:
-        st.header("🔒 安全访问")
+        st.markdown("### 🔐 安全访问")
         # 增加口令输入框
         password = st.text_input("请输入访问口令", type="password")
         
@@ -97,7 +98,7 @@ def main():
             st.header("关于助手")
             st.write("本助手基于 DeepSeek API 开发，支持多种格式文档的一键总结。")
             st.divider()
-            st.caption("版本: 6.0 (Customizable)")
+            st.caption("版本: 7.0 (Kznk Edition)")
         return # 提前结束，不显示下方组件
 
     # --- 侧边栏：交互控制台 (仅在口令正确时显示) ---
@@ -121,7 +122,7 @@ def main():
         st.header("关于助手")
         st.write("本助手基于 DeepSeek API 开发，支持多种格式文档的一键总结。")
         st.divider()
-        st.caption("版本: 6.0 (Customizable)")
+        st.caption("版本: 7.0 (Kznk Edition)")
 
     # --- 核心功能区 (口令正确时) ---
     st.info(f"✅ 访问已解锁！配置：{out_lang} | {out_len} | {out_style}")
