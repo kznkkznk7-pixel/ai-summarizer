@@ -74,7 +74,31 @@ def main():
     # 界面标题和副标题
     st.title("🚀 智能文件总结助手")
     st.markdown("---")
-    st.info("上传一个文件 (.txt, .md, .pdf)，我将为你生成精简且深度的总结报告。")
+    
+    # --- 侧边栏：安全校验 ---
+    with st.sidebar:
+        st.header("🔒 安全访问")
+        # 增加口令输入框
+        password = st.text_input("请输入访问口令", type="password")
+        
+        st.divider()
+        st.header("关于助手")
+        st.write("本助手基于 DeepSeek API 开发，支持多种格式文档的一键总结。")
+        st.divider()
+        st.caption("版本: 5.0 (Security Reinforced)")
+
+    # --- 逻辑拦截 ---
+    # 设定访问口令
+    SECRET_PASSWORD = "2026"
+
+    if password != SECRET_PASSWORD:
+        # 如果口令不正确，显示警示信息并停止后续渲染
+        st.warning("🛡️ 请在左侧侧边栏输入正确口令以解锁功能")
+        st.info("提示：请与系统管理员联系获取访问口令。")
+        return # 提前结束，不显示下方组件
+
+    # --- 核心功能区 (仅在口令正确时显示) ---
+    st.info("👋 欢迎进入！上传文件即可开启深度总结服务。")
 
     # 检查 API KEY
     if not os.getenv("OPENAI_API_KEY"):
@@ -118,13 +142,6 @@ def main():
                             file_name=f"{os.path.splitext(uploaded_file.name)[0]}_总结结果.txt",
                             mime="text/plain"
                         )
-
-    # 侧边栏说明
-    with st.sidebar:
-        st.header("关于助手")
-        st.write("本助手基于 DeepSeek API 开发，支持多种格式文档的一键总结。")
-        st.divider()
-        st.caption("版本: 4.0 (Web + Streamlit)")
 
 if __name__ == "__main__":
     main()
