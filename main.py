@@ -1,5 +1,7 @@
 import os
 import streamlit as st
+import io
+from docx import Document
 from datetime import datetime
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -183,10 +185,31 @@ def main():
                         )
                         
                         st.download_button(
-                            label="📥 下载总结结果",
+                            label="📥 下载总结结果 (TXT)",
                             data=download_content,
                             file_name=f"{os.path.splitext(uploaded_file.name)[0]}_深度解析.txt",
                             mime="text/plain"
+                        )
+
+                        # --- 新增：Word 导出功能 (V3.0) ---
+                        doc = Document()
+                        doc.add_heading(f"智能总结报告", 0)
+                        doc.add_paragraph(f"文件名：{uploaded_file.name}")
+                        doc.add_paragraph(f"配置：语言={out_lang}, 长度={out_len}, 风格={out_style}")
+                        doc.add_paragraph(f"生成时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                        doc.add_section()
+                        doc.add_paragraph(summary)
+
+                        # 保存到内存字节流
+                        doc_io = io.BytesIO()
+                        doc.save(doc_io)
+                        doc_io.seek(0)
+
+                        st.download_button(
+                            label="📥 一键下载总结报告 (Word)",
+                            data=doc_io,
+                            file_name=f"{os.path.splitext(uploaded_file.name)[0]}_深度解析.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                         )
 
         # ---------------- 对话功能 (ChatPDF 模式) ----------------
