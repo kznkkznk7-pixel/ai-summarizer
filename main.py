@@ -72,6 +72,12 @@ def summarize_text(text, target_lang, target_len, target_style):
         return None
 
 def main():
+    # --- 初始化记忆中枢 (Session State) ---
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+    if "doc_text" not in st.session_state:
+        st.session_state.doc_text = ""
+
     # --- 主界面标题与美化 ---
     st.markdown("<h1 style='text-align: center; color: #1E90FF;'>✨ Kznk 智能文档分析核心</h1>", unsafe_allow_html=True)
     st.divider()
@@ -96,9 +102,9 @@ def main():
         
         with st.sidebar:
             st.header("关于助手")
-            st.write("本助手基于 DeepSeek API 开发，支持多种格式文档的一键总结。")
+            st.write("本助手基于 DeepSeek API 开发，支持多种格式文档的一键总结与对话。")
             st.divider()
-            st.caption("版本: 7.0 (Kznk Edition)")
+            st.caption("版本: 8.0 (ChatPDF V2.0)")
         return # 提前结束，不显示下方组件
 
     # --- 侧边栏：交互控制台 (仅在口令正确时显示) ---
@@ -119,10 +125,12 @@ def main():
         out_style = st.selectbox("语气风格", ["专业严谨", "幽默风趣", "大白话讲故事"])
         
         st.divider()
+        st.button("🧹 清除聊天记录", on_click=lambda: st.session_state.messages.clear())
+        
         st.header("关于助手")
-        st.write("本助手基于 DeepSeek API 开发，支持多种格式文档的一键总结。")
+        st.write("本助手基于 DeepSeek API 开发，支持多种格式文档的一键总结与对话。")
         st.divider()
-        st.caption("版本: 7.0 (Kznk Edition)")
+        st.caption("版本: 8.0 (ChatPDF V2.0)")
 
     # --- 核心功能区 (口令正确时) ---
     st.info(f"✅ 访问已解锁！配置：{out_lang} | {out_len} | {out_style}")
@@ -139,7 +147,7 @@ def main():
         file_details = {"文件名": uploaded_file.name, "文件大小": f"{uploaded_file.size / 1024:.2f} KB"}
         st.write("📁 文件已选择:", file_details)
 
-        # 点击开始总结
+        # ---------------- 总结功能 ----------------
         if st.button("✨ 开始总结", type="primary"):
             with st.spinner("🔍 正在根据您的个性化偏好进行总结，请稍候..."):
                 content = ""
@@ -151,6 +159,9 @@ def main():
                     content = uploaded_file.read().decode("utf-8")
 
                 if content:
+                    # 保存文档上下文
+                    st.session_state.doc_text = content
+                    
                     summary = summarize_text(content, out_lang, out_len, out_style)
                     
                     if summary:
@@ -177,6 +188,51 @@ def main():
                             file_name=f"{os.path.splitext(uploaded_file.name)[0]}_深度解析.txt",
                             mime="text/plain"
                         )
+
+        # ---------------- 对话功能 (ChatPDF 模式) ----------------
+        st.divider()
+        st.subheader("💬 文档对话助手")
+        
+        if not st.session_state.doc_text:
+            st.info("💡 请先点击上面的“开始总结”按钮解析文档，解析后即可开启对话问答。")
+        else:
+            # 渲染历史记录
+            for message in st.session_state.messages:
+                with st.chat_message(message["role"]):
+                    st.markdown(message["content"])
+
+            # 接受用户提问
+            if prompt := st.chat_input("向 AI 提问关于这份文档的内容..."):
+                # 记录并显示用户问题
+                st.session_state.messages.append({"role": "user", "content": prompt})
+                with st.chat_message("user"):
+                    st.markdown(prompt)
+
+                # 生成 AI 回答
+                with st.chat_message("assistant"):
+                    with st.spinner("🧠 正在检索文档内容并思考..."):
+                        try:
+                            response = client.chat.completions.create(
+                                model="deepseek-chat",
+                                messages=[
+                                    {
+                                        "role": "system", 
+                                        "content": (
+                                            "你是一个文档问答助手，请严格根据以下提供的文档内容回答用户的问题。\n"
+                                            "1. 如果文档中没有相关信息，请直接回答'抱歉，在文档中未找到相关内容'。\n"
+                                            "2. 你的回答应准确、简洁、专业。\n"
+                                            f"文档内容：\n{st.session_state.doc_text[:10000]}" # 限制长度防止超限
+                                        )
+                                    },
+                                    *st.session_state.messages[-10:] # 只携带最近10轮对话，保持记忆并节省 tokens
+                                ]
+                            )
+                            answer = response.choices[0].message.content
+                            st.markdown(answer)
+                            # 保存助手回答
+                            st.session_state.messages.append({"role": "assistant", "content": answer})
+                        except Exception as e:
+                            st.error(f"❌ 对话发生错误: {e}")
 
 if __name__ == "__main__":
     main()
